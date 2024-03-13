@@ -1,0 +1,323 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.F_Setup..Create
+Gui.F_Setup..Caption("Local Currency Setup [APAC]")
+Gui.F_Setup..Size(8130,2100)
+Gui.F_Setup..MinX(0)
+Gui.F_Setup..MinY(0)
+Gui.F_Setup..Position(0,0)
+Gui.F_Setup..FontSize(9)
+Gui.F_Setup..BackColor(-2147483633)
+Gui.F_Setup..MousePointer(0)
+Gui.F_Setup..Event(UnLoad,Unload)
+Gui.F_Setup.txtCurrency.Create(TextBox,"",True,840,315,0,135,345,True,0,"Arial",9,-2147483643,1)
+Gui.F_Setup.txtCurrency.Event(LostFocus,txtCurrency_LostFocus)
+Gui.F_Setup.cmdSave.Create(Button)
+Gui.F_Setup.cmdSave.Size(1770,555)
+Gui.F_Setup.cmdSave.Position(105,825)
+Gui.F_Setup.cmdSave.Caption("Save")
+Gui.F_Setup.cmdSave.FontSize(9)
+Gui.F_Setup.cmdSave.Event(Click,cmdSave_Click)
+Gui.F_Setup.lbl1.Create(Label,"Currency",True,990,255,0,135,120,True,0,"Arial",9,-2147483633,0)
+Gui.F_Setup.lbl2.Create(Label,"Country",True,795,255,0,1335,120,True,0,"Arial",9,-2147483633,0)
+Gui.F_Setup.txtCountry.Create(TextBox,"",True,2370,315,0,1365,345,True,0,"Arial",9,-2147483643,1)
+Gui.F_Setup.txtCountry.Locked(True)
+Gui.F_Setup.lbl3.Create(Label,"Currency Description",True,1935,255,0,4035,120,True,0,"Arial",9,-2147483633,0)
+Gui.F_Setup.txtDescription.Create(TextBox,"",True,3690,315,0,4065,345,True,0,"Arial",9,-2147483643,1)
+Gui.F_Setup.txtDescription.Locked(True)
+Gui.F_Invoice..Create
+Gui.F_Invoice..Caption("Invoice Exchange Rate [APAC]")
+Gui.F_Invoice..Size(11970,6240)
+Gui.F_Invoice..MinX(0)
+Gui.F_Invoice..MinY(0)
+Gui.F_Invoice..Position(0,0)
+Gui.F_Invoice..BackColor(-2147483633)
+Gui.F_Invoice..MousePointer(0)
+Gui.F_Invoice.lbl1.Create(Label,"Please confirm the following exchange rate for this invoice",True,5055,255,0,45,105,True,0,"Arial",9,-2147483633,0)
+Gui.F_Invoice.cmdConfirm.Create(Button)
+Gui.F_Invoice.cmdConfirm.Size(3360,705)
+Gui.F_Invoice.cmdConfirm.Position(90,4560)
+Gui.F_Invoice.cmdConfirm.Caption("Confirm")
+Gui.F_Invoice.cmdConfirm.FontSize(9)
+Gui.F_Invoice.cmdConfirm.Event(Click,cmdConfirm_Click)
+Gui.F_Invoice.lbl5.Create(Label,"* Exchange rate is rounded to 5 decimals",True,3990,255,0,45,5415,True,0,"Arial",9,-2147483633,0)
+Gui.F_Invoice.GsGCInvoice.Create(GsGridControl)
+Gui.F_Invoice.GsGCInvoice.Size(11595,4080)
+Gui.F_Invoice.GsGCInvoice.Position(75,360)
+Gui.F_Invoice.frame1.Create(Frame)
+Gui.F_Invoice.frame1.Size(7620,1125)
+Gui.F_Invoice.frame1.Position(4065,4440)
+Gui.F_Invoice.frame1.Caption("Color Coding")
+Gui.F_Invoice.frame1.FontSize(9)
+Gui.F_Invoice.txtGray.Create(TextBox,"",True,1125,195,0,120,345,True,0,"Arial",8,-2147483643,0)
+Gui.F_Invoice.txtGray.Parent("frame1")
+Gui.F_Invoice.lbl2.Create(Label,"Invoice exchange rate has been entered. Record will not be updated.",True,6030,255,0,1470,375,True,0,"Arial",9,-2147483633,0)
+Gui.F_Invoice.lbl2.Parent("frame1")
+Gui.F_Invoice.txtGreen.Create(TextBox,"",True,1125,195,0,120,720,True,0,"Arial",8,-2147483643,0)
+Gui.F_Invoice.txtGreen.Parent("frame1")
+Gui.F_Invoice.lbl3.Create(Label,"Invoice currency is the same as country currency.",True,4215,255,0,1470,780,True,0,"Arial",9,-2147483633,0)
+Gui.F_Invoice.lbl3.Parent("frame1")
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.sCountry.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+V.Local.sIcon.Declare
+V.Local.bExist.Declare
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,16090)
+	'Laser form print
+	F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,V.Local.sIcon)
+	gui.F_Invoice..Icon(V.Local.sIcon)
+	Gui.F_Invoice.txtGray.BackColor(V.Color.LtGray)
+	Gui.F_Invoice.txtGreen.BackColor(V.Color.LtGreen)
+	F.Intrinsic.Control.CallSub(hook16090)
+'	F.Intrinsic.Control.CallSub(unload)
+F.Intrinsic.Control.Else
+	'Custom hook to select local currency
+	F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,V.Local.sIcon)
+	gui.F_Setup..Icon(V.Local.sIcon)
+
+	F.ODBC.Connection!conx.TableExists("GAB_4994_EXCH_RATE",V.Local.bExist)
+	F.Intrinsic.Control.If(V.Local.bExist,=,False)
+		F.ODBC.Connection!conx.Execute("CREATE TABLE GAB_4994_EXCH_RATE(INVOICE CHAR(7) NOT NULL, DATE_INVOICE DATE NOT NULL, ORDER_CURRENCY CHAR(3), DATE_EXCHANGE DATE, EXCHANGE_RATE NUMERIC(10,5), PRIMARY KEY (INVOICE, DATE_INVOICE));")
+	F.Intrinsic.Control.EndIf
+
+	F.Data.Dictionary.CreateFromSQL("dicCurrency","conx","select iso_code, iso_code from v_exchange_currency order by iso_code")
+	Gui.F_Setup.txtCurrency.AddAutoCompleteItem("dicCurrency","Dictionary")
+	F.Data.Dictionary.Close("dicCurrency")
+	
+	F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst","select order_currency from gab_4994_exch_rate where invoice = 'XXXXXXX' and date_invoice = '1900-01-01'")
+	F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+		Gui.F_Setup.txtCurrency.Text(V.ODBC.conx!rst.FieldValTrim!order_currency)
+		F.Intrinsic.Control.CallSub(txtcurrency_lostfocus)
+	F.Intrinsic.Control.EndIf
+	F.ODBC.conx!rst.Close
+	
+	Gui.F_Setup..Show
+F.Intrinsic.Control.EndIf
+
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+Program.Sub.Unload.End
+
+Program.Sub.txtCurrency_LostFocus.Start
+V.Local.sCurrency.Declare
+V.Local.sSQL.Declare
+
+V.Local.sCurrency.Set(V.Screen.F_Setup!txtCurrency.Text)
+F.Intrinsic.String.UCase(V.Local.sCurrency,V.Local.sCurrency)
+
+F.Intrinsic.String.Build("select country, description from v_exchange_currency where iso_code = '{0}'",V.Local.sCurrency.Trim,V.Local.sSQL)
+F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.sSQL)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+	Gui.F_Setup.txtCountry.Text(V.ODBC.conx!rst.FieldVal!country)
+	Gui.F_Setup.txtDescription.Text(V.ODBC.conx!rst.FieldVal!description)
+F.Intrinsic.Control.Else
+
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rst.Close
+Program.Sub.txtCurrency_LostFocus.End
+
+Program.Sub.cmdSave_Click.Start
+V.Local.sCurrency.Declare
+V.Local.sSQL.Declare
+
+V.Local.sCurrency.Set(V.Screen.F_Setup!txtCurrency.Text)
+F.Intrinsic.String.UCase(V.Local.sCurrency,V.Local.sCurrency)
+
+'Verify currency
+F.Intrinsic.String.Build("select iso_code from v_exchange_currency where iso_code = '{0}'",V.Local.sCurrency.Trim,V.Local.sSQL)
+F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",V.Local.sSQL)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,True)
+	F.Intrinsic.UI.Msgbox("Invalid currency code")
+F.Intrinsic.Control.Else
+	F.ODBC.conx!rst.Close
+	F.ODBC.Connection!conx.OpenLocalRecordsetRW("rst","select order_currency from gab_4994_exch_rate where invoice = 'XXXXXXX' and date_invoice = '1900-01-01'")
+	F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+		F.ODBC.conx!rst.Set!order_currency(V.Local.sCurrency.Trim)
+		F.ODBC.conx!rst.Update
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("insert into gab_4994_exch_rate(invoice,date_invoice,order_currency) values('XXXXXXX','1900-01-01','{0}');",V.Local.sCurrency.Trim,V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rst.Close
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.Hook16090.Start
+V.Local.dExchRate.Declare(Date)
+V.Local.fExch1.Declare
+V.Local.fExch2.Declare
+V.Local.i1.Declare
+V.Local.sBase.Declare
+V.Local.sLabel.Declare
+V.Local.sMessage.Declare
+V.Local.sOrder.Declare
+V.Local.sRet.Declare
+V.Local.sSQL.Declare
+
+F.Intrinsic.Control.If(V.Passed.009001,=,"000055")
+	'Company currency
+	F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst","SELECT CURRENCY FROM V_COMPANY_OPT")
+	V.Local.sBase.Set(V.ODBC.conx!rst.FieldValTrim!CURRENCY)
+	F.ODBC.conx!rst.Close
+
+	'Country currency
+	F.ODBC.Connection!conx.OpenLocalRecordsetRO("rst","select order_currency from gab_4994_exch_rate where invoice = 'XXXXXXX' and date_invoice = '1900-01-01'")
+	F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+		V.Global.sCountry.Set(V.ODBC.conx!rst.FieldValTrim!order_currency)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.Msgbox("Country currency is not setup. Terminating program.")
+		F.Intrinsic.Control.CallSub(unload)
+	F.Intrinsic.Control.EndIf
+	F.ODBC.conx!rst.Close
+
+	'Select distinct invoice numbers
+	F.Intrinsic.String.Build("select distinct(invoice_no) as Invoice, invoice_date as DateInvoice, curr_cd as Currency from v_prt_laser_invoice where terminal_no = '{0}'",V.Caller.Terminal,V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtInvoice","conx",V.Local.sSQL,True)
+	F.Intrinsic.Control.If(V.DataTable.dtInvoice.RowCount,>,0)
+		F.Data.DataTable.AddColumn("dtInvoice","DateExchange","Date")
+		F.Data.DataTable.AddColumn("dtInvoice","Rate","Float")
+		F.Data.DataTable.AddColumn("dtInvoice","Flag","Long")
+		F.Intrinsic.Control.For(V.Local.i1,V.DataTable.dtInvoice.RowCount--,0,-1)
+			F.Intrinsic.String.Build("select order_currency from gab_4994_exch_rate where invoice = '{0}' and date_invoice = '{1}'",V.DataTable.dtInvoice(V.Local.i1).Invoice!FieldValTrim,V.DataTable.dtInvoice(V.Local.i1).DateInvoice!FieldValPervasiveDate,V.Local.sSQL)
+			F.ODBC.Connection!conx.OpenLocalRecordsetRO("rstI",V.Local.sSQL)
+			F.Intrinsic.Control.If(V.ODBC.conx!rstI.EOF,=,True)
+				F.Intrinsic.Control.If(V.DataTable.dtInvoice(V.Local.i1).Currency!FieldValTrim,=,V.Global.sCountry.Trim)
+					'Order currency is the same as country currency
+					F.Intrinsic.String.Build("insert into gab_4994_exch_rate(invoice,date_invoice,order_currency,date_exchange,exchange_rate) values('{0}','{1}','{2}','{1}',1);",V.DataTable.dtInvoice(V.Local.i1).Invoice!FieldValTrim,V.DataTable.dtInvoice(V.Local.i1).DateInvoice!FieldValPervasiveDate,V.Global.sCountry.Trim,V.Local.sSQL)
+					F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+					F.Data.DataTable.SetValue("dtInvoice",V.Local.i1,"Flag",2)
+				F.Intrinsic.Control.Else
+					'Check if order currency is base currency
+					F.Intrinsic.Control.If(V.DataTable.dtInvoice(V.Local.i1).Currency!FieldValTrim,=,V.Local.sBase.Trim)
+						'Base currency
+						'Base currency is different from country currency
+						F.Intrinsic.String.Build("select top 1 date_exch_rate, exchange_rate from v_exchange_rates where date_exch_rate <= '{0}' and from_iso_code = '{1}' and to_iso_code = '{2}' order by date_exch_rate desc",V.DataTable.dtInvoice(V.Local.i1).DateInvoice!FieldValPervasiveDate,V.Local.sBase.Trim,V.Global.sCountry.Trim,V.Local.sSQL)
+						F.ODBC.Connection!conx.OpenLocalRecordsetRO("rstE",V.Local.sSQL)
+						F.Intrinsic.Control.If(V.ODBC.conx!rstE.EOF,=,True)
+	'							F.Intrinsic.String.Build("No exchange rate info from {1} to {0} is found. Please enter exchange rate info manually.",V.Global.sCountry.Trim,V.Local.sBase.Trim,V.Local.sMessage)
+	'							F.Intrinsic.UI.Msgbox(V.Local.sMessage)
+							F.Data.DataTable.SetValue("dtInvoice",V.Local.i1,"DateExchange",V.DataTable.dtInvoice(V.Local.i1).DateInvoice!FieldVal,"Rate",0,"Flag",0)
+						F.Intrinsic.Control.Else
+							F.Data.DataTable.SetValue("dtInvoice",V.Local.i1,"DateExchange",V.ODBC.conx!rstE.FieldVal!date_exch_rate,"Rate",V.ODBC.conx!rstE.FieldVal!exchange_rate,"Flag",0)
+						F.Intrinsic.Control.EndIf
+						F.ODBC.conx!rstE.Close
+					F.Intrinsic.Control.Else
+						'Order currency is different from base currency
+						'Get exchange rate from order currency to base currency
+						F.Intrinsic.String.Build("select top 1 date_exch_rate, exchange_rate from v_exchange_rates where date_exch_rate <= '{0}' and from_iso_code = '{1}' and to_iso_code = '{2}' order by date_exch_rate desc",V.DataTable.dtInvoice(V.Local.i1).DateInvoice!FieldValPervasiveDate,V.DataTable.dtInvoice(V.Local.i1).Currency!FieldValTrim,V.Local.sBase.Trim,V.Local.sSQL)
+						F.ODBC.Connection!conx.OpenLocalRecordsetRO("rstE",V.Local.sSQL)
+						F.Intrinsic.Control.If(V.ODBC.conx!rstE.EOF,=,True)
+							V.Local.fExch2.Set(0)
+							V.Local.dExchRate.Set(V.DataTable.dtInvoice(V.Local.i1).DateInvoice!FieldVal)
+						F.Intrinsic.Control.Else
+							V.Local.fExch1.Set(V.ODBC.conx!rstE.FieldVal!exchange_rate)
+							V.Local.dExchRate.Set(V.ODBC.conx!rstE.FieldVal!date_exch_rate)
+							F.ODBC.conx!rstE.Close
+							'Get exchange rate from base currency to country currency
+							F.Intrinsic.String.Build("select exchange_rate from v_exchange_rates where date_exch_rate = '{0}' and from_iso_code = '{1}' and to_iso_code = '{2}'",V.Local.dExchRate.PervasiveDate,V.Local.sBase.Trim,V.Global.sCountry.Trim,V.Local.sSQL)
+							F.ODBC.Connection!conx.OpenLocalRecordsetRO("rstE",V.Local.sSQL)
+							V.Local.fExch2.Set(V.ODBC.conx!rstE.FieldVal!exchange_rate)
+							'Calculate exchange rate
+							F.Intrinsic.Math.Mult(V.Local.fExch1,V.Local.fExch2,V.Local.fExch2)
+							F.Intrinsic.Math.Round(V.Local.fExch2,5,V.Local.fExch2)
+						F.Intrinsic.Control.EndIf
+						F.ODBC.conx!rstE.Close
+						F.Data.DataTable.SetValue("dtInvoice",V.Local.i1,"DateExchange",V.Local.dExchRate,"Rate",V.Local.fExch2,"Flag",0)
+					F.Intrinsic.Control.EndIf
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Else
+				F.Data.DataTable.SetValue("dtInvoice",V.Local.i1,"Flag",1)
+			F.Intrinsic.Control.EndIf
+			F.ODBC.conx!rstI.Close
+		F.Intrinsic.Control.Next(V.Local.i1)
+		
+		F.Data.DataTable.Select("dtInvoice","Flag = 0",V.Local.sRet)
+		F.Intrinsic.Control.If(V.Local.sRet,<>,"***NORETURN***")
+			'Only open the screen if there is a record that needs to be updated
+			Gui.F_Invoice.GsGCInvoice.AddGridviewFromDatatable("gvInvoice","dtInvoice")
+			Gui.F_Invoice.GsGCInvoice.MainView("gvInvoice")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Flag","Visible",False)
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateExchange","AllowEdit",True)
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateExchange","ReadOnly",False)
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Rate","AllowEdit",True)
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Rate","ReadOnly",False)
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateInvoice","Caption","Invoice Date")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateExchange","Caption","Exchange Date")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Rate","Caption","Exchange Rate")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Invoice","MinWidth","100")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateInvoice","MinWidth","120")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Currency","MinWidth","90")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateExchange","MinWidth","120")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Rate","MinWidth","100")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Invoice","HeaderHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateInvoice","HeaderHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Currency","HeaderHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateExchange","HeaderHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Rate","HeaderHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Invoice","CellHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateInvoice","CellHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Currency","CellHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateExchange","CellHAlignment","Center")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateInvoice","DisplayCustomDatetime","d")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","DateExchange","DisplayCustomDatetime","d")
+			Gui.F_Invoice.GsGCInvoice.SetColumnProperty("gvInvoice","Rate","DisplayCustomNumeric","##,###,##0.00000")
+			
+			F.Intrinsic.Control.For(V.Local.i1,0,V.DataTable.dtInvoice.RowCount--,1)
+				F.Intrinsic.Control.If(V.DataTable.dtInvoice(V.Local.i1).Flag!FieldValLong,=,1)
+					Gui.F_Invoice.GsGCInvoice.SetRowAppearance("gvInvoice",V.Local.i1,"backcolor",V.Color.LtGray)
+				F.Intrinsic.Control.ElseIf(V.DataTable.dtInvoice(V.Local.i1).Flag!FieldValLong,=,2)
+					Gui.F_Invoice.GsGCInvoice.SetRowAppearance("gvInvoice",V.Local.i1,"backcolor",V.Color.LtGreen)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.Next(V.Local.i1)
+			
+			Gui.F_Invoice..Show
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+Program.Sub.Hook16090.End
+
+Program.Sub.cmdConfirm_Click.Start
+V.Local.i1.Declare
+V.Local.dExchRate.Declare(Date)
+V.Local.dInvoice.Declare
+V.Local.fExchRate.Declare
+V.Local.sFilter.Declare
+V.Local.sInvoice.Declare
+V.Local.sRet.Declare
+V.Local.sSQL.Declare
+
+F.Data.DataTable.Select("dtInvoice","Rate = 0",V.Local.sRet)
+F.Intrinsic.Control.If(V.Local.sRet,=,"***NORETURN***")
+	F.Intrinsic.Control.For(V.Local.i1,0,V.DataTable.dtInvoice.RowCount--,1)
+		F.Intrinsic.Control.If(V.DataTable.dtInvoice(V.Local.i1).Flag!FieldValLong,=,0)
+			F.Intrinsic.Math.Round(V.DataTable.dtInvoice(V.Local.i1).Rate!FieldValFloat,5,V.Local.fExchRate)
+			F.Intrinsic.String.Build("insert into gab_4994_exch_rate(invoice,date_invoice,order_currency,date_exchange,exchange_rate) values('{0}','{1}','{2}','{3}',{4});",V.DataTable.dtInvoice(V.Local.i1).Invoice!FieldValTrim,V.DataTable.dtInvoice(V.Local.i1).DateInvoice!FieldValPervasiveDate,V.DataTable.dtInvoice(V.Local.i1).Currency!FieldValTrim,V.DataTable.dtInvoice(V.Local.i1).DateExchange!FieldValPervasiveDate,V.Local.fExchRate,V.Local.sSQL)
+			F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.i1)
+	F.Data.DataTable.Close("dtInvoice")
+	F.ODBC.Connection!conx.Close
+	F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox("Exchange rate cannot be 0")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+Program.Sub.cmdConfirm_Click.End
+
+Program.Sub.Comments.Start
+${$0$}$Store Exchange Rate to Country Currency for AR Invoices$}$MHERTANTO$}$3/1/2018 4:03:07 PM$}$True
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$This custom program is used when base currency used is different from the local currency and the local government enforces to show exchange rate to local currency for every invoice generated by the system.
+${$5$}$2.0.0.0$}$2
+${$6$}$dyunus$}$20200929091300904$}$xZ6SHi8g7O0Qsxe6AiO2NH3PnOKQRy0T7ues0laafJPWRUT2E+VTxnHHBV/fStrTXHAmUZtMIwg=
+Program.Sub.Comments.End
